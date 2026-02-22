@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Scene } from './rendering/Scene';
 import { Controls } from './ui/Controls';
-import { MatchingManager } from './matching/matchingManager';
+import { DebugOverlay } from './ui/DebugOverlay';
+import { MatchingManager, type MatchingDebugData } from './matching/matchingManager';
 import { DigitalClockSource, StaticImageSource, ColorTestSource } from './matching/imageSource';
 import { useStore } from './store/useStore';
 
@@ -11,13 +12,16 @@ function App() {
   const setAllTargets = useStore((s) => s.setAllTargets);
   const managerRef = useRef<MatchingManager | null>(null);
   const [activeSource, setActiveSource] = useState<'clock' | 'image' | 'test'>('clock');
+  const [debugData, setDebugData] = useState<MatchingDebugData | null>(null);
+  const [showDebug, setShowDebug] = useState(true);
 
   // Initialize the matching manager once
   useEffect(() => {
     const manager = new MatchingManager();
     managerRef.current = manager;
-    manager.setOnUpdate((orientations) => {
+    manager.setOnUpdate((orientations, debug) => {
       setAllTargets(orientations);
+      setDebugData(debug);
     });
     return () => manager.dispose();
   }, [setAllTargets]);
@@ -71,7 +75,10 @@ function App() {
         onClockMode={handleClockMode}
         onColorTest={handleColorTest}
         activeSource={activeSource}
+        showDebug={showDebug}
+        onToggleDebug={() => setShowDebug((v) => !v)}
       />
+      <DebugOverlay debugData={debugData} visible={showDebug} />
     </>
   );
 }

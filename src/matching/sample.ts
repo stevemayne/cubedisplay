@@ -68,7 +68,9 @@ export function sampleImageForGrid(
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const cx = col * cellW;
-      const cy = row * cellH;
+      // Flip vertically: grid row 0 is at the bottom of the isometric view,
+      // but image row 0 is at the top. So sample in reverse.
+      const cy = (rows - 1 - row) * cellH;
 
       // Sample top zone (U face): upper half of cell
       const topColor = sampleRegion(data, width, height,

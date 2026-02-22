@@ -29,11 +29,13 @@ interface AppState {
   // Animation
   animationSpeed: number; // moves per second
   isPlaying: boolean;
+  frozen: boolean; // When true, all cubes show target state without animating
 
   // Actions
   initGrid: (cols: number, rows: number) => void;
   setAnimationSpeed: (speed: number) => void;
   togglePlay: () => void;
+  setFrozen: (frozen: boolean) => void;
   setTargetOrientation: (cubeId: number, orientation: Orientation) => void;
   setAllTargets: (orientations: Orientation[]) => void;
   startCycle: (cubeId: number) => void;
@@ -58,6 +60,7 @@ export const useStore = create<AppState>((set) => ({
   cubes: [],
   animationSpeed: 6,
   isPlaying: true,
+  frozen: false,
 
   initGrid: (cols: number, rows: number) => {
     const cubes: CubeInstance[] = [];
@@ -73,6 +76,8 @@ export const useStore = create<AppState>((set) => ({
   setAnimationSpeed: (speed: number) => set({ animationSpeed: speed }),
 
   togglePlay: () => set((s) => ({ isPlaying: !s.isPlaying })),
+
+  setFrozen: (frozen: boolean) => set({ frozen }),
 
   setTargetOrientation: (cubeId: number, orientation: Orientation) => {
     set((s) => ({

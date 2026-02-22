@@ -50,8 +50,8 @@ export class ColorTestSource implements ImageSource {
   interval = 0;
 
   render(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-    // Render a simple color gradient for testing
-    const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff8800', '#ffffff'];
+    // Render strips using actual Rubik's cube colors for accurate testing
+    const colors = ['#ffffff', '#b71234', '#009b48', '#ffd500', '#ff5800', '#0046ad'];
     const stripW = width / colors.length;
 
     for (let i = 0; i < colors.length; i++) {

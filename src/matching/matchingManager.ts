@@ -1,7 +1,15 @@
 import type { ImageSource } from './imageSource';
 import type { Orientation } from '../cube/types';
-import { sampleImageForGrid } from './sample';
+import { sampleImageForGrid, type CubeTarget } from './sample';
 import { findAllOrientations } from './search';
+
+export interface MatchingDebugData {
+  imageDataUrl: string;
+  targets: CubeTarget[];
+  orientations: Orientation[];
+  cols: number;
+  rows: number;
+}
 
 // The matching manager renders an image source to an offscreen canvas,
 // samples it, and produces target orientations for each cube in the grid.
@@ -11,7 +19,7 @@ export class MatchingManager {
   private ctx: CanvasRenderingContext2D;
   private source: ImageSource | null = null;
   private intervalId: number | null = null;
-  private onUpdate: ((orientations: Orientation[]) => void) | null = null;
+  private onUpdate: ((orientations: Orientation[], debug: MatchingDebugData) => void) | null = null;
 
   // Canvas resolution for sampling (doesn't need to be high)
   private readonly sampleWidth = 128;
@@ -29,18 +37,26 @@ export class MatchingManager {
     this.source = source;
   }
 
-  setOnUpdate(callback: (orientations: Orientation[]) => void) {
+  setOnUpdate(callback: (orientations: Orientation[], debug: MatchingDebugData) => void) {
     this.onUpdate = callback;
   }
 
   // Compute orientations for the given grid dimensions
-  compute(cols: number, rows: number): Orientation[] {
-    if (!this.source) return [];
+  private computeAndNotify(cols: number, rows: number) {
+    if (!this.source) return;
 
     this.source.render(this.ctx, this.sampleWidth, this.sampleHeight);
     const imageData = this.ctx.getImageData(0, 0, this.sampleWidth, this.sampleHeight);
     const targets = sampleImageForGrid(imageData, cols, rows);
-    return findAllOrientations(targets);
+    const orientations = findAllOrientations(targets);
+    const debug: MatchingDebugData = {
+      imageDataUrl: this.canvas.toDataURL(),
+      targets,
+      orientations,
+      cols,
+      rows,
+    };
+    this.onUpdate?.(orientations, debug);
   }
 
   // Start periodic updates (for dynamic sources like the clock)
@@ -49,14 +65,12 @@ export class MatchingManager {
     if (!this.source) return;
 
     // Compute immediately
-    const orientations = this.compute(cols, rows);
-    this.onUpdate?.(orientations);
+    this.computeAndNotify(cols, rows);
 
     // Set up periodic updates if the source has an interval
     if (this.source.interval > 0) {
       this.intervalId = window.setInterval(() => {
-        const orientations = this.compute(cols, rows);
-        this.onUpdate?.(orientations);
+        this.computeAndNotify(cols, rows);
       }, this.source.interval);
     }
   }

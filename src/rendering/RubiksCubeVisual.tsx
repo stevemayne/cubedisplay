@@ -12,6 +12,7 @@ export interface RubiksCubeHandle {
   enqueueMoves: (moves: Move[]) => void;
   isAnimating: () => boolean;
   setState: (state: CubeState) => void;
+  clearMoves: () => void;
 }
 
 interface RubiksCubeVisualProps {
@@ -52,7 +53,13 @@ export const RubiksCubeVisual = forwardRef<RubiksCubeHandle, RubiksCubeVisualPro
       stateRef.current = state;
     }, []);
 
-    useImperativeHandle(ref, () => ({ enqueueMoves, isAnimating, setState }), [enqueueMoves, isAnimating, setState]);
+    const clearMoves = useCallback(() => {
+      moveQueueRef.current = [];
+      currentMoveRef.current = null;
+      progressRef.current = 0;
+    }, []);
+
+    useImperativeHandle(ref, () => ({ enqueueMoves, isAnimating, setState, clearMoves }), [enqueueMoves, isAnimating, setState, clearMoves]);
 
     // Temp objects to avoid allocations in the animation loop
     const tempQuaternion = useMemo(() => new THREE.Quaternion(), []);

@@ -6,13 +6,17 @@ interface ControlsProps {
   onClockMode: () => void;
   onColorTest: () => void;
   activeSource: 'clock' | 'image' | 'test';
+  showDebug: boolean;
+  onToggleDebug: () => void;
 }
 
-export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource }: ControlsProps) {
+export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource, showDebug, onToggleDebug }: ControlsProps) {
   const gridCols = useStore((s) => s.gridCols);
   const gridRows = useStore((s) => s.gridRows);
   const animationSpeed = useStore((s) => s.animationSpeed);
   const setAnimationSpeed = useStore((s) => s.setAnimationSpeed);
+  const frozen = useStore((s) => s.frozen);
+  const setFrozen = useStore((s) => s.setFrozen);
   const initGrid = useStore((s) => s.initGrid);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [cols, setCols] = useState(gridCols);
@@ -104,6 +108,23 @@ export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource
           />
           <button style={buttonStyle} onClick={handleGridResize}>
             Apply
+          </button>
+        </div>
+      </div>
+
+      <div style={sectionStyle}>
+        <div style={buttonGroupStyle}>
+          <button
+            style={frozen ? activeButtonStyle : buttonStyle}
+            onClick={() => setFrozen(!frozen)}
+          >
+            {frozen ? 'Unfreeze' : 'Freeze'}
+          </button>
+          <button
+            style={showDebug ? activeButtonStyle : buttonStyle}
+            onClick={onToggleDebug}
+          >
+            Debug
           </button>
         </div>
       </div>
