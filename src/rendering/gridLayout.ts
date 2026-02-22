@@ -1,50 +1,37 @@
 // Grid layout for isometric cube tessellation.
 //
-// In isometric projection from direction (1,1,1), a cube projects as a regular hexagon.
-// Cubes placed in a simple rectangular grid in 3D (sharing faces) will tessellate
-// perfectly as hexagons in the projection.
+// In isometric projection from direction (1,1,1), a cube projects as a
+// pointy-top regular hexagon. To tessellate these hexagons in a rectangular
+// mosaic, cubes are placed on the plane x+y+z=0 using axial hex coordinates.
 //
-// Each Rubik's cube is 3 units wide (3 cubies). Adjacent cubes share faces,
-// so they are placed 3 units apart along each axis.
+// Lattice vectors: e1 = (S, 0, -S), e2 = (0, S, -S)
+// Position from axial (q, r): (q*S, r*S, -(q+r)*S)
+//
+// Rectangular grid (col, row) maps to axial via even-row pointy-top offset:
+//   q = col - floor(row / 2)
+//   r = row
+//
+// This produces rows that project as horizontal lines, with odd rows
+// shifted right by half a hex width — a standard rectangular hex mosaic.
 
-const CUBE_SPACING = 3; // 3 cubies per cube side
+const S = 3; // cube side length in cubies
 
 export function gridToWorld(col: number, row: number): [number, number, number] {
-  // Place cubes in the XZ plane at y=0
-  // The isometric projection handles making them look hexagonal
-  return [col * CUBE_SPACING, 0, row * CUBE_SPACING];
-}
-
-// Calculate camera zoom to fit the entire grid in view
-export function calculateZoom(
-  cols: number,
-  rows: number,
-  viewportWidth: number,
-  viewportHeight: number,
-): number {
-  // In isometric projection, the grid spans:
-  // Horizontal: roughly cols * CUBE_SPACING * sqrt(2) (diagonal projection)
-  // Vertical: roughly rows * CUBE_SPACING * sqrt(2) + some for the cube height
-  //
-  // The exact projected dimensions depend on the isometric transform.
-  // For a (1,1,1) camera direction, the projected width of a unit along X
-  // is sqrt(2/3) and along Z is also sqrt(2/3).
-  // The projected height contribution from Y is sqrt(1/3).
-
-  const projectedWidth = (cols - 1) * CUBE_SPACING * Math.sqrt(2 / 3) * 2 + CUBE_SPACING * 2;
-  const projectedHeight = (rows - 1) * CUBE_SPACING * Math.sqrt(2 / 3) * 2 + CUBE_SPACING * 2;
-
-  const zoomX = viewportWidth / projectedWidth;
-  const zoomY = viewportHeight / projectedHeight;
-
-  return Math.min(zoomX, zoomY) * 0.85; // 85% to add some margin
+  const q = col - Math.floor(row / 2);
+  const r = row;
+  return [q * S, r * S, -(q + r) * S];
 }
 
 // Calculate center position for camera target
 export function gridCenter(cols: number, rows: number): [number, number, number] {
+  // Average the corner positions to find the center
+  const p00 = gridToWorld(0, 0);
+  const p10 = gridToWorld(cols - 1, 0);
+  const p01 = gridToWorld(0, rows - 1);
+  const p11 = gridToWorld(cols - 1, rows - 1);
   return [
-    ((cols - 1) * CUBE_SPACING) / 2,
-    0,
-    ((rows - 1) * CUBE_SPACING) / 2,
+    (p00[0] + p10[0] + p01[0] + p11[0]) / 4,
+    (p00[1] + p10[1] + p01[1] + p11[1]) / 4,
+    (p00[2] + p10[2] + p01[2] + p11[2]) / 4,
   ];
 }
