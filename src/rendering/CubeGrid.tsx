@@ -5,51 +5,53 @@ import { gridToWorld } from './gridLayout';
 import { useStore } from '../store/useStore';
 import { generateScramble } from '../cube/scramble';
 import { inverseMoves } from '../cube/moves';
-import { solvedStateForOrientation } from '../cube/wholeCubeRotations';
-import { ORIENTATIONS } from '../cube/orientations';
-import type { Orientation } from '../cube/types';
+import { SOLVED_STATE } from '../cube/constants';
+import type { CubeState } from '../cube/types';
 
 interface GridCubeProps {
   col: number;
   row: number;
   cubeIndex: number;
   animationSpeed: number;
-  targetOrientation: Orientation;
+  targetState: CubeState;
+  targetVersion: number;
   frozen: boolean;
 }
 
-function GridCube({ col, row, cubeIndex, animationSpeed, targetOrientation, frozen }: GridCubeProps) {
+function GridCube({ col, row, cubeIndex, animationSpeed, targetState, targetVersion, frozen }: GridCubeProps) {
   const cubeRef = useRef<RubiksCubeHandle>(null);
   const phaseRef = useRef<'idle' | 'animating' | 'waiting'>('waiting');
   const timerRef = useRef(0);
-  const targetRef = useRef(targetOrientation);
-  const displayedTargetRef = useRef<Orientation | null>(null);
+  const targetRef = useRef(targetState);
+  const versionRef = useRef(targetVersion);
+  const displayedVersionRef = useRef<number | null>(null);
   const frozenRef = useRef(frozen);
   const position = useMemo(() => gridToWorld(col, row), [col, row]);
 
-  // The initial state = the solved state for the target orientation
+  // The initial state = the first target state we receive
   const initialState = useMemo(
-    () => solvedStateForOrientation(targetOrientation),
+    () => new Uint8Array(targetState) as CubeState,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
   // Track target changes — schedule a new cycle when target changes
   useEffect(() => {
-    const prevTarget = targetRef.current;
-    targetRef.current = targetOrientation;
+    const prevVersion = versionRef.current;
+    targetRef.current = targetState;
+    versionRef.current = targetVersion;
 
     // If the target actually changed and we're idle (already showing old target),
     // schedule a new cycle to transition to the new target.
     if (
-      prevTarget.id !== targetOrientation.id &&
-      displayedTargetRef.current !== null &&
+      prevVersion !== targetVersion &&
+      displayedVersionRef.current !== null &&
       phaseRef.current === 'idle'
     ) {
       phaseRef.current = 'waiting';
       timerRef.current = Math.random() * 1.5;
     }
-  }, [targetOrientation]);
+  }, [targetState, targetVersion]);
 
   // Track frozen changes
   useEffect(() => {
@@ -58,11 +60,11 @@ function GridCube({ col, row, cubeIndex, animationSpeed, targetOrientation, froz
       const cube = cubeRef.current;
       if (cube) {
         cube.clearMoves();
-        cube.setState(solvedStateForOrientation(targetRef.current));
+        cube.setState(targetRef.current);
         phaseRef.current = 'idle';
-        displayedTargetRef.current = targetRef.current;
+        displayedVersionRef.current = versionRef.current;
       }
-    } else if (displayedTargetRef.current?.id !== targetRef.current.id) {
+    } else if (displayedVersionRef.current !== versionRef.current) {
       // Unfreezing with a pending target change
       phaseRef.current = 'waiting';
       timerRef.current = Math.random() * 1.5;
@@ -76,8 +78,8 @@ function GridCube({ col, row, cubeIndex, animationSpeed, targetOrientation, froz
     if (frozenRef.current) {
       if (cube.isAnimating()) {
         cube.clearMoves();
-        cube.setState(solvedStateForOrientation(targetRef.current));
-        displayedTargetRef.current = targetRef.current;
+        cube.setState(targetRef.current);
+        displayedVersionRef.current = versionRef.current;
       }
       return;
     }
@@ -85,13 +87,13 @@ function GridCube({ col, row, cubeIndex, animationSpeed, targetOrientation, froz
     if (phaseRef.current === 'animating') {
       if (!cube.isAnimating()) {
         // Cycle finished — snap to current target and hold
-        const target = targetRef.current;
-        cube.setState(solvedStateForOrientation(target));
-        displayedTargetRef.current = target;
+        const version = versionRef.current;
+        cube.setState(targetRef.current);
+        displayedVersionRef.current = version;
         phaseRef.current = 'idle';
 
         // If target changed DURING the animation, schedule another cycle
-        if (target.id !== targetRef.current.id) {
+        if (version !== versionRef.current) {
           phaseRef.current = 'waiting';
           timerRef.current = Math.random() * 1.5;
         }
@@ -124,10 +126,13 @@ function GridCube({ col, row, cubeIndex, animationSpeed, targetOrientation, froz
   );
 }
 
-// Each cube subscribes to its own target orientation from the store
-function GridCubeConnected({ col, row, cubeIndex, animationSpeed, frozen }: Omit<GridCubeProps, 'targetOrientation'>) {
-  const targetOrientation = useStore(
-    (s) => s.cubes[cubeIndex]?.targetOrientation ?? ORIENTATIONS[0]
+// Each cube subscribes to its own target state from the store
+function GridCubeConnected({ col, row, cubeIndex, animationSpeed, frozen }: Omit<GridCubeProps, 'targetState' | 'targetVersion'>) {
+  const targetState = useStore(
+    (s) => s.cubes[cubeIndex]?.targetState ?? SOLVED_STATE
+  );
+  const targetVersion = useStore(
+    (s) => s.cubes[cubeIndex]?.targetVersion ?? 0
   );
 
   return (
@@ -136,7 +141,8 @@ function GridCubeConnected({ col, row, cubeIndex, animationSpeed, frozen }: Omit
       row={row}
       cubeIndex={cubeIndex}
       animationSpeed={animationSpeed}
-      targetOrientation={targetOrientation}
+      targetState={targetState}
+      targetVersion={targetVersion}
       frozen={frozen}
     />
   );

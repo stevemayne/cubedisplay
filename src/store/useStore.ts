@@ -1,9 +1,8 @@
 import { create } from 'zustand';
-import type { CubeState, Move, Orientation } from '../cube/types';
+import type { CubeState, Move } from '../cube/types';
 import { SOLVED_STATE } from '../cube/constants';
 import { generateScramble } from '../cube/scramble';
 import { inverseMoves } from '../cube/moves';
-import { ORIENTATIONS } from '../cube/orientations';
 
 export type CubePhase = 'idle' | 'scrambling' | 'solving' | 'displaying';
 
@@ -12,7 +11,8 @@ export interface CubeInstance {
   col: number;
   row: number;
   state: CubeState;
-  targetOrientation: Orientation;
+  targetState: CubeState;
+  targetVersion: number; // increments when targetState actually changes
   phase: CubePhase;
   moveQueue: Move[];
   displayTimer: number; // seconds remaining in display phase
@@ -36,9 +36,16 @@ interface AppState {
   setAnimationSpeed: (speed: number) => void;
   togglePlay: () => void;
   setFrozen: (frozen: boolean) => void;
-  setTargetOrientation: (cubeId: number, orientation: Orientation) => void;
-  setAllTargets: (orientations: Orientation[]) => void;
+  setAllTargets: (states: CubeState[]) => void;
   startCycle: (cubeId: number) => void;
+}
+
+// Compare two CubeStates by visible content (first 27 elements = U+R+F faces)
+function visibleStatesEqual(a: CubeState, b: CubeState): boolean {
+  for (let i = 0; i < 27; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
 }
 
 function createCubeInstance(id: number, col: number, row: number): CubeInstance {
@@ -47,7 +54,8 @@ function createCubeInstance(id: number, col: number, row: number): CubeInstance 
     col,
     row,
     state: SOLVED_STATE,
-    targetOrientation: ORIENTATIONS[0], // default: standard solved orientation
+    targetState: SOLVED_STATE,
+    targetVersion: 0,
     phase: 'idle',
     moveQueue: [],
     displayTimer: 0,
@@ -79,20 +87,19 @@ export const useStore = create<AppState>((set) => ({
 
   setFrozen: (frozen: boolean) => set({ frozen }),
 
-  setTargetOrientation: (cubeId: number, orientation: Orientation) => {
+  setAllTargets: (states: CubeState[]) => {
     set((s) => ({
-      cubes: s.cubes.map((c) =>
-        c.id === cubeId ? { ...c, targetOrientation: orientation } : c
-      ),
-    }));
-  },
-
-  setAllTargets: (orientations: Orientation[]) => {
-    set((s) => ({
-      cubes: s.cubes.map((c, i) => ({
-        ...c,
-        targetOrientation: orientations[i] ?? c.targetOrientation,
-      })),
+      cubes: s.cubes.map((c, i) => {
+        const newState = states[i];
+        if (!newState) return c;
+        // Only bump version if the visible pattern actually changed
+        if (visibleStatesEqual(c.targetState, newState)) return c;
+        return {
+          ...c,
+          targetState: newState,
+          targetVersion: c.targetVersion + 1,
+        };
+      }),
     }));
   },
 

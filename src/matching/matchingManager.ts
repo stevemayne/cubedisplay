@@ -1,29 +1,28 @@
 import type { ImageSource } from './imageSource';
-import type { Orientation } from '../cube/types';
-import { sampleImageForGrid, type CubeTarget } from './sample';
-import { findAllOrientations } from './search';
+import type { CubeState } from '../cube/types';
+import { sampleStickersForGrid } from './projection';
+import { findAllStates } from './search';
 
 export interface MatchingDebugData {
   imageDataUrl: string;
-  targets: CubeTarget[];
-  orientations: Orientation[];
+  states: CubeState[];
   cols: number;
   rows: number;
 }
 
 // The matching manager renders an image source to an offscreen canvas,
-// samples it, and produces target orientations for each cube in the grid.
+// samples it per-sticker, and produces target cube states for each cube in the grid.
 
 export class MatchingManager {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private source: ImageSource | null = null;
   private intervalId: number | null = null;
-  private onUpdate: ((orientations: Orientation[], debug: MatchingDebugData) => void) | null = null;
+  private onUpdate: ((states: CubeState[], debug: MatchingDebugData) => void) | null = null;
 
-  // Canvas resolution for sampling (doesn't need to be high)
-  private readonly sampleWidth = 128;
-  private readonly sampleHeight = 128;
+  // Canvas resolution for sampling — 256×256 for better per-sticker resolution
+  private readonly sampleWidth = 256;
+  private readonly sampleHeight = 256;
 
   constructor() {
     this.canvas = document.createElement('canvas');
@@ -37,26 +36,25 @@ export class MatchingManager {
     this.source = source;
   }
 
-  setOnUpdate(callback: (orientations: Orientation[], debug: MatchingDebugData) => void) {
+  setOnUpdate(callback: (states: CubeState[], debug: MatchingDebugData) => void) {
     this.onUpdate = callback;
   }
 
-  // Compute orientations for the given grid dimensions
+  // Compute target states for the given grid dimensions
   private computeAndNotify(cols: number, rows: number) {
     if (!this.source) return;
 
     this.source.render(this.ctx, this.sampleWidth, this.sampleHeight);
     const imageData = this.ctx.getImageData(0, 0, this.sampleWidth, this.sampleHeight);
-    const targets = sampleImageForGrid(imageData, cols, rows);
-    const orientations = findAllOrientations(targets);
+    const targets = sampleStickersForGrid(imageData, cols, rows);
+    const states = findAllStates(targets);
     const debug: MatchingDebugData = {
       imageDataUrl: this.canvas.toDataURL(),
-      targets,
-      orientations,
+      states,
       cols,
       rows,
     };
-    this.onUpdate?.(orientations, debug);
+    this.onUpdate?.(states, debug);
   }
 
   // Start periodic updates (for dynamic sources like the clock)
