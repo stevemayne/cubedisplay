@@ -20,15 +20,34 @@ export class MatchingManager {
   private intervalId: number | null = null;
   private onUpdate: ((states: CubeState[], debug: MatchingDebugData) => void) | null = null;
 
-  // Canvas resolution for sampling — 256×256 for better per-sticker resolution
-  private readonly sampleWidth = 256;
-  private readonly sampleHeight = 256;
+  // Target pixel budget (total pixels ≈ 256×256)
+  private readonly PIXEL_BUDGET = 256 * 256;
+
+  // Screen-space aspect ratio of one hex cell (col spacing / row spacing).
+  // Col spacing = 6/sqrt(2), row spacing = 9/sqrt(6).
+  private readonly CELL_ASPECT = (6 / Math.sqrt(2)) / (9 / Math.sqrt(6));
+
+  private sampleWidth = 256;
+  private sampleHeight = 256;
 
   constructor() {
     this.canvas = document.createElement('canvas');
     this.canvas.width = this.sampleWidth;
     this.canvas.height = this.sampleHeight;
     this.ctx = this.canvas.getContext('2d')!;
+  }
+
+  // Resize canvas to match the grid's screen-space aspect ratio
+  private resizeCanvas(cols: number, rows: number) {
+    const aspect = (cols / rows) * this.CELL_ASPECT;
+    const h = Math.round(Math.sqrt(this.PIXEL_BUDGET / aspect));
+    const w = Math.round(aspect * h);
+    if (w !== this.sampleWidth || h !== this.sampleHeight) {
+      this.sampleWidth = w;
+      this.sampleHeight = h;
+      this.canvas.width = w;
+      this.canvas.height = h;
+    }
   }
 
   setSource(source: ImageSource) {
@@ -44,6 +63,7 @@ export class MatchingManager {
   private computeAndNotify(cols: number, rows: number) {
     if (!this.source) return;
 
+    this.resizeCanvas(cols, rows);
     this.source.render(this.ctx, this.sampleWidth, this.sampleHeight);
     const imageData = this.ctx.getImageData(0, 0, this.sampleWidth, this.sampleHeight);
     const targets = sampleStickersForGrid(imageData, cols, rows);

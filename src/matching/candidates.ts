@@ -51,8 +51,9 @@ export function generateCandidatePool(maxDepth: number = 2): Candidate[] {
     const key = visibleKey(baseState);
     if (!seen.has(key)) {
       seen.add(key);
+      const vp = baseState.slice(0, 27) as Uint8Array;
       candidates.push({
-        visiblePattern: baseState.slice(0, 27) as Uint8Array,
+        visiblePattern: vp,
         state: new Uint8Array(baseState) as CubeState,
       });
       queue.push([baseState, 0, null]);
@@ -72,8 +73,9 @@ export function generateCandidatePool(maxDepth: number = 2): Candidate[] {
 
       if (!seen.has(key)) {
         seen.add(key);
+        const vp = next.slice(0, 27) as Uint8Array;
         candidates.push({
-          visiblePattern: next.slice(0, 27) as Uint8Array,
+          visiblePattern: vp,
           state: new Uint8Array(next) as CubeState,
         });
         if (depth + 1 < maxDepth) {

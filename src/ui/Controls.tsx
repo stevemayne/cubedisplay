@@ -92,7 +92,7 @@ export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource
           <input
             type="range"
             min="2"
-            max="20"
+            max="40"
             value={cols}
             onChange={(e) => setCols(parseInt(e.target.value))}
             style={{ ...sliderStyle, flex: 1 }}
@@ -101,7 +101,7 @@ export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource
           <input
             type="range"
             min="2"
-            max="15"
+            max="40"
             value={rows}
             onChange={(e) => setRows(parseInt(e.target.value))}
             style={{ ...sliderStyle, flex: 1 }}

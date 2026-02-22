@@ -93,9 +93,9 @@ function SceneContent() {
         far={1000}
       />
       <CameraSetup />
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[10, 20, 10]} intensity={0.8} />
-      <directionalLight position={[-10, 5, -10]} intensity={0.3} />
+      <ambientLight intensity={0.85} />
+      <directionalLight position={[10, 20, 10]} intensity={0.3} />
+      <directionalLight position={[-10, 5, -10]} intensity={0.15} />
       <CubeGrid />
     </>
   );
