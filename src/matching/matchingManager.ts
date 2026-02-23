@@ -28,6 +28,8 @@ export class MatchingManager {
 
   private sampleWidth = 256;
   private sampleHeight = 256;
+  private cols = 0;
+  private rows = 0;
 
   constructor() {
     this.canvas = document.createElement('canvas');
@@ -79,6 +81,8 @@ export class MatchingManager {
   // Start periodic updates (for dynamic sources like the clock)
   start(cols: number, rows: number) {
     this.stop();
+    this.cols = cols;
+    this.rows = rows;
     if (!this.source) return;
 
     // Compute immediately
@@ -89,6 +93,13 @@ export class MatchingManager {
       this.intervalId = window.setInterval(() => {
         this.computeAndNotify(cols, rows);
       }, this.source.interval);
+    }
+  }
+
+  // Re-compute immediately (e.g. after source state changes externally)
+  refresh() {
+    if (this.cols > 0 && this.rows > 0 && this.source) {
+      this.computeAndNotify(this.cols, this.rows);
     }
   }
 

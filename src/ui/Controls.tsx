@@ -21,7 +21,7 @@ export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [cols, setCols] = useState(gridCols);
   const [rows, setRows] = useState(gridRows);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

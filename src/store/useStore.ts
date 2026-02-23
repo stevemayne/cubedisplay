@@ -41,6 +41,11 @@ interface AppState {
   setFrozen: (frozen: boolean) => void;
   setAllTargets: (results: TargetResult[]) => void;
   startCycle: (cubeId: number) => void;
+
+  // Settlement tracking (non-reactive — callbacks live outside Zustand state)
+  setOnAllSettled: (cb: (() => void) | null) => void;
+  reportCubeSettled: (index: number) => void;
+  isAllSettled: () => boolean;
 }
 
 // Compare two CubeStates by visible content (first 27 elements = U+R+F faces)
@@ -67,9 +72,15 @@ function createCubeInstance(id: number, col: number, row: number): CubeInstance 
   };
 }
 
+// Settlement tracking — lives outside Zustand reactive state to avoid re-renders.
+// Tracks which cubes are still animating toward their targets.
+let unsettledCubes = new Set<number>();
+let pendingSettlement = false;
+let allSettledCallback: (() => void) | null = null;
+
 export const useStore = create<AppState>((set) => ({
-  gridCols: 5,
-  gridRows: 5,
+  gridCols: 28,
+  gridRows: 14,
   cubes: [],
   animationSpeed: 6,
   isPlaying: true,
@@ -93,12 +104,15 @@ export const useStore = create<AppState>((set) => ({
   setFrozen: (frozen: boolean) => set({ frozen }),
 
   setAllTargets: (results: TargetResult[]) => {
+    let anyChanged = false;
     set((s) => ({
       cubes: s.cubes.map((c, i) => {
         const result = results[i];
         if (!result) return c;
         // Only bump version if the visible pattern actually changed
         if (visibleStatesEqual(c.targetState, result.state)) return c;
+        unsettledCubes.add(i);
+        anyChanged = true;
         return {
           ...c,
           targetState: result.state,
@@ -108,6 +122,12 @@ export const useStore = create<AppState>((set) => ({
         };
       }),
     }));
+    if (anyChanged) pendingSettlement = true;
+    // If nothing changed and we were pending, all cubes are already showing target
+    if (unsettledCubes.size === 0 && pendingSettlement) {
+      pendingSettlement = false;
+      allSettledCallback?.();
+    }
   },
 
   startCycle: (cubeId: number) => {
@@ -131,4 +151,19 @@ export const useStore = create<AppState>((set) => ({
       };
     });
   },
+
+  setOnAllSettled: (cb: (() => void) | null) => {
+    allSettledCallback = cb;
+  },
+
+  reportCubeSettled: (index: number) => {
+    if (!unsettledCubes.has(index)) return;
+    unsettledCubes.delete(index);
+    if (unsettledCubes.size === 0 && pendingSettlement) {
+      pendingSettlement = false;
+      allSettledCallback?.();
+    }
+  },
+
+  isAllSettled: () => unsettledCubes.size === 0,
 }));

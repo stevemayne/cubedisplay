@@ -10,10 +10,13 @@ function App() {
   const gridCols = useStore((s) => s.gridCols);
   const gridRows = useStore((s) => s.gridRows);
   const setAllTargets = useStore((s) => s.setAllTargets);
+  const setOnAllSettled = useStore((s) => s.setOnAllSettled);
   const managerRef = useRef<MatchingManager | null>(null);
+  const clockSourceRef = useRef<DigitalClockSource | null>(null);
+  const inversionTimerRef = useRef<number | null>(null);
   const [activeSource, setActiveSource] = useState<'clock' | 'image' | 'test'>('clock');
   const [debugData, setDebugData] = useState<MatchingDebugData | null>(null);
-  const [showDebug, setShowDebug] = useState(true);
+  const [showDebug, setShowDebug] = useState(false);
 
   // Initialize the matching manager once
   useEffect(() => {
@@ -26,6 +29,30 @@ function App() {
     return () => manager.dispose();
   }, [setAllTargets]);
 
+  // Drive the inversion cycle: wait for all cubes to settle, then swap colors
+  useEffect(() => {
+    setOnAllSettled(() => {
+      if (inversionTimerRef.current !== null) {
+        clearTimeout(inversionTimerRef.current);
+      }
+      inversionTimerRef.current = window.setTimeout(() => {
+        const source = clockSourceRef.current;
+        const manager = managerRef.current;
+        if (!source || !manager) return;
+        // Re-check that cubes are still settled (not disrupted during wait)
+        if (!useStore.getState().isAllSettled()) return;
+        source.inverted = !source.inverted;
+        manager.refresh();
+      }, 2000);
+    });
+    return () => {
+      setOnAllSettled(null);
+      if (inversionTimerRef.current !== null) {
+        clearTimeout(inversionTimerRef.current);
+      }
+    };
+  }, [setOnAllSettled]);
+
   // Apply source whenever grid dimensions or source type changes
   const applySource = useCallback(
     (source: 'clock' | 'image' | 'test', img?: HTMLImageElement) => {
@@ -33,11 +60,20 @@ function App() {
       if (!manager || gridCols === 0 || gridRows === 0) return;
 
       if (source === 'clock') {
-        manager.setSource(new DigitalClockSource());
-      } else if (source === 'test') {
-        manager.setSource(new ColorTestSource());
-      } else if (source === 'image' && img) {
-        manager.setSource(new StaticImageSource(img));
+        const clockSource = new DigitalClockSource();
+        clockSourceRef.current = clockSource;
+        manager.setSource(clockSource);
+      } else {
+        clockSourceRef.current = null;
+        if (inversionTimerRef.current !== null) {
+          clearTimeout(inversionTimerRef.current);
+          inversionTimerRef.current = null;
+        }
+        if (source === 'test') {
+          manager.setSource(new ColorTestSource());
+        } else if (source === 'image' && img) {
+          manager.setSource(new StaticImageSource(img));
+        }
       }
       manager.start(gridCols, gridRows);
     },

@@ -22,6 +22,7 @@ interface GridCubeProps {
 
 function GridCube({ col, row, cubeIndex, animationSpeed, targetState, targetBaseState, targetMoves, targetVersion, frozen }: GridCubeProps) {
   const cubeRef = useRef<RubiksCubeHandle>(null);
+  const reportCubeSettled = useStore((s) => s.reportCubeSettled);
   const phaseRef = useRef<'idle' | 'animating' | 'waiting'>('waiting');
   const timerRef = useRef(0);
   const targetRef = useRef(targetState);
@@ -86,6 +87,7 @@ function GridCube({ col, row, cubeIndex, animationSpeed, targetState, targetBase
         cube.clearMoves();
         cube.setState(targetRef.current);
         displayedVersionRef.current = versionRef.current;
+        reportCubeSettled(cubeIndex);
       }
       return;
     }
@@ -98,6 +100,7 @@ function GridCube({ col, row, cubeIndex, animationSpeed, targetState, targetBase
         cube.setState(targetRef.current);
         displayedVersionRef.current = version;
         phaseRef.current = 'idle';
+        reportCubeSettled(cubeIndex);
 
         // If target changed DURING the animation, schedule another cycle
         if (version !== versionRef.current) {

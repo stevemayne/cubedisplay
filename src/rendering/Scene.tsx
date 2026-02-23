@@ -105,7 +105,7 @@ export function Scene() {
   const initGrid = useStore((s) => s.initGrid);
 
   useEffect(() => {
-    initGrid(8, 6);
+    initGrid(28, 14);
   }, [initGrid]);
 
   return (
