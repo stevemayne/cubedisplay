@@ -1,6 +1,6 @@
 # Rubik's Mosaic Clock
 
-A real-time mosaic display built from a tessellating grid of 3D Rubik's cubes rendered in isometric projection. Each cube's three visible faces (top, right, front) are matched to approximate a target image — by default, a digital clock with a cycling color gradient background.
+A real-time mosaic display built from a tessellating grid of 3D Rubik's cubes rendered in isometric projection. Each cube's three visible faces (top, right, front) are matched to approximate a target image — by default, a digital clock.
 
 Inspired by the work of Gabor Papp: https://www.instagram.com/gaborpapp_/
 
@@ -20,11 +20,15 @@ Sampled RGB colors are converted to **CIELAB** color space for perceptually unif
 
 When a cube's target changes, it plays a scramble-then-solve animation before arriving at the new pattern. Each candidate stores the base orientation it was derived from and the moves to reach the target, so the animation naturally ends at the correct state without jarring snaps.
 
+### Color Inversion
+
+In clock mode, the display periodically inverts its color scheme (orange background / blue text ↔ blue background / orange text). The inversion is **settlement-driven**: it waits for all cubes to finish animating to their targets, pauses for 2 seconds, then triggers the swap.
+
 State management uses **Zustand**, with each cube subscribing to its own slice of the store.
 
 ## Image Sources
 
-- **Digital Clock** — displays current time (HH:MM) with bold white text on a cycling gradient background that rotates through Rubik's orange, red, and blue
+- **Digital Clock** — displays current time (HH:MM) with bold text on a solid orange/blue background that periodically inverts. Selectable font (Helvetica, Courier, Menlo, Consolas, Impact, DSEG7/14 variants)
 - **Image Upload** — upload any image to display as a Rubik's mosaic
 - **Color Test** — vertical strips of the six Rubik's cube colors for calibration
 
@@ -33,6 +37,7 @@ State management uses **Zustand**, with each cube subscribing to its own slice o
 - React 19, TypeScript, Vite
 - Three.js / @react-three/fiber / @react-three/drei
 - Zustand for state management
+- DSEG font family (optional digital clock fonts)
 
 ## Getting Started
 

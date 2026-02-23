@@ -3,7 +3,7 @@ import { COLOR_HEX, INTERIOR_COLOR } from '../cube/constants';
 
 // Shared materials for all cubies — one per Rubik's color + interior
 const stickerMaterials = COLOR_HEX.map(
-  (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.05 })
+  (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.15, metalness: 0.02 })
 );
 
 const interiorMaterial = new THREE.MeshStandardMaterial({
