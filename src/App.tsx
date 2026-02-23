@@ -17,6 +17,7 @@ function App() {
   const [activeSource, setActiveSource] = useState<'clock' | 'image' | 'test'>('clock');
   const [debugData, setDebugData] = useState<MatchingDebugData | null>(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [clockFontIndex, setClockFontIndex] = useState(0);
 
   // Initialize the matching manager once
   useEffect(() => {
@@ -61,6 +62,7 @@ function App() {
 
       if (source === 'clock') {
         const clockSource = new DigitalClockSource();
+        clockSource.fontIndex = clockFontIndex;
         clockSourceRef.current = clockSource;
         manager.setSource(clockSource);
       } else {
@@ -77,7 +79,7 @@ function App() {
       }
       manager.start(gridCols, gridRows);
     },
-    [gridCols, gridRows]
+    [gridCols, gridRows, clockFontIndex]
   );
 
   // Auto-apply clock on startup and when grid changes
@@ -103,6 +105,16 @@ function App() {
     setActiveSource('test');
   }, []);
 
+  const handleClockFontChange = useCallback((index: number) => {
+    setClockFontIndex(index);
+    const source = clockSourceRef.current;
+    const manager = managerRef.current;
+    if (source && manager) {
+      source.fontIndex = index;
+      manager.refresh();
+    }
+  }, []);
+
   return (
     <>
       <Scene />
@@ -111,6 +123,8 @@ function App() {
         onClockMode={handleClockMode}
         onColorTest={handleColorTest}
         activeSource={activeSource}
+        clockFontIndex={clockFontIndex}
+        onClockFontChange={handleClockFontChange}
         showDebug={showDebug}
         onToggleDebug={() => setShowDebug((v) => !v)}
       />

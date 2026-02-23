@@ -21,9 +21,27 @@ export class StaticImageSource implements ImageSource {
   }
 }
 
+export interface ClockFont {
+  label: string;
+  css: string;
+}
+
+export const CLOCK_FONTS: ClockFont[] = [
+  { label: 'Helvetica', css: "900 %spx Helvetica, Arial, sans-serif" },
+  { label: 'Courier', css: "bold %spx 'Courier New', Courier, monospace" },
+  { label: 'Menlo', css: "bold %spx Menlo, Monaco, monospace" },
+  { label: 'Consolas', css: "bold %spx Consolas, 'Liberation Mono', monospace" },
+  { label: 'Impact', css: "900 %spx Impact, 'Arial Black', sans-serif" },
+  { label: 'DSEG7 Classic', css: "bold %spx 'DSEG7-Classic', monospace" },
+  { label: 'DSEG7 Modern', css: "bold %spx 'DSEG7-Modern', monospace" },
+  { label: 'DSEG14 Classic', css: "bold %spx 'DSEG14-Classic', monospace" },
+  { label: 'DSEG14 Modern', css: "bold %spx 'DSEG14-Modern', monospace" },
+];
+
 export class DigitalClockSource implements ImageSource {
   interval = 10_000;
   inverted = false;
+  fontIndex = 0;
 
   render(ctx: CanvasRenderingContext2D, width: number, height: number): void {
     const now = new Date();
@@ -33,19 +51,19 @@ export class DigitalClockSource implements ImageSource {
 
     const bgColor = this.inverted ? '#0046ad' : '#ff5800';
     const textColor = this.inverted ? '#ff5800' : '#0046ad';
-    const outlineColor = this.inverted ? '#591f00' : '#001a3a';
 
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, width, height);
 
     // --- Text rendering ---
+    const fontTemplate = CLOCK_FONTS[this.fontIndex]?.css ?? CLOCK_FONTS[0].css;
     const pad = width * 0.05;
     let fontSize = height * 0.85;
-    ctx.font = `900 ${fontSize}px Helvetica, Arial, sans-serif`;
+    ctx.font = fontTemplate.replace('%s', String(fontSize));
     const measured = ctx.measureText(timeStr);
     if (measured.width > width - pad * 2) {
       fontSize *= (width - pad * 2) / measured.width;
-      ctx.font = `900 ${fontSize}px Helvetica, Arial, sans-serif`;
+      ctx.font = fontTemplate.replace('%s', String(fontSize));
     }
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
@@ -53,11 +71,6 @@ export class DigitalClockSource implements ImageSource {
     // Use font metrics for true vertical centering
     const metrics = ctx.measureText(timeStr);
     const textY = height / 2 + (metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent) / 2;
-
-    ctx.strokeStyle = outlineColor;
-    ctx.lineWidth = fontSize / 12;
-    ctx.lineJoin = 'round';
-    ctx.strokeText(timeStr, width / 2, textY);
 
     ctx.fillStyle = textColor;
     ctx.fillText(timeStr, width / 2, textY);

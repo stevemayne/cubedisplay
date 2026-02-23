@@ -1,16 +1,19 @@
 import { useCallback, useRef, useState } from 'react';
 import { useStore } from '../store/useStore';
+import { CLOCK_FONTS } from '../matching/imageSource';
 
 interface ControlsProps {
   onImageUpload: (image: HTMLImageElement) => void;
   onClockMode: () => void;
   onColorTest: () => void;
   activeSource: 'clock' | 'image' | 'test';
+  clockFontIndex: number;
+  onClockFontChange: (index: number) => void;
   showDebug: boolean;
   onToggleDebug: () => void;
 }
 
-export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource, showDebug, onToggleDebug }: ControlsProps) {
+export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource, clockFontIndex, onClockFontChange, showDebug, onToggleDebug }: ControlsProps) {
   const gridCols = useStore((s) => s.gridCols);
   const gridRows = useStore((s) => s.gridRows);
   const animationSpeed = useStore((s) => s.animationSpeed);
@@ -90,6 +93,21 @@ export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource
           style={{ display: 'none' }}
         />
       </div>
+
+      {activeSource === 'clock' && (
+        <div style={sectionStyle}>
+          <label style={labelStyle}>Font</label>
+          <select
+            value={clockFontIndex}
+            onChange={(e) => onClockFontChange(parseInt(e.target.value))}
+            style={selectStyle}
+          >
+            {CLOCK_FONTS.map((f, i) => (
+              <option key={i} value={i}>{f.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div style={sectionStyle}>
         <label style={labelStyle}>
@@ -226,6 +244,16 @@ const activeButtonStyle: React.CSSProperties = {
   ...buttonStyle,
   background: 'rgba(100, 140, 255, 0.3)',
   borderColor: 'rgba(100, 140, 255, 0.6)',
+};
+
+const selectStyle: React.CSSProperties = {
+  background: 'rgba(255, 255, 255, 0.1)',
+  border: '1px solid rgba(255, 255, 255, 0.2)',
+  borderRadius: 6,
+  color: '#fff',
+  padding: '4px 8px',
+  cursor: 'pointer',
+  fontSize: 12,
 };
 
 const sliderStyle: React.CSSProperties = {
