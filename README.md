@@ -2,6 +2,8 @@
 
 A real-time mosaic display built from a tessellating grid of 3D Rubik's cubes rendered in isometric projection. Each cube's three visible faces (top, right, front) are matched to approximate a target image — by default, a digital clock with a cycling color gradient background.
 
+Inspired by the work of Gabor Papp: https://www.instagram.com/gaborpapp_/
+
 ## How It Works
 
 ### Rendering
