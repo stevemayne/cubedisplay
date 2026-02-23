@@ -79,6 +79,22 @@ function App() {
         onToggleDebug={() => setShowDebug((v) => !v)}
       />
       <DebugOverlay debugData={debugData} visible={showDebug} />
+      <a
+        href="https://stevemayne.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          position: 'fixed',
+          bottom: 12,
+          right: 16,
+          color: '#888',
+          fontSize: 13,
+          textDecoration: 'none',
+          zIndex: 50,
+        }}
+      >
+        stevemayne.com
+      </a>
     </>
   );
 }
