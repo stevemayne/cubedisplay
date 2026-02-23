@@ -27,8 +27,8 @@ export interface ClockFont {
 }
 
 export const CLOCK_FONTS: ClockFont[] = [
-  { label: 'Courier', css: "bold %spx 'Courier New', Courier, monospace" },
   { label: 'Helvetica', css: "900 %spx Helvetica, Arial, sans-serif" },
+  { label: 'Courier', css: "bold %spx 'Courier New', Courier, monospace" },
   { label: 'Menlo', css: "bold %spx Menlo, Monaco, monospace" },
   { label: 'Consolas', css: "bold %spx Consolas, 'Liberation Mono', monospace" },
   { label: 'Impact', css: "900 %spx Impact, 'Arial Black', sans-serif" },

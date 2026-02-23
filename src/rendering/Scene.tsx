@@ -1,6 +1,7 @@
-import { useEffect, useMemo } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { useEffect, useMemo, useRef } from 'react';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrthographicCamera } from '@react-three/drei';
+import * as THREE from 'three';
 import { CubeGrid } from './CubeGrid';
 import { gridCenter, gridToWorld } from './gridLayout';
 import { useStore } from '../store/useStore';
@@ -22,9 +23,35 @@ function CameraSetup() {
   return null;
 }
 
+// A bright point light that slowly orbits over the grid — broad, omnidirectional wash
+function RovingLight({ center, radiusH, radiusV }: { center: [number, number, number]; radiusH: number; radiusV: number }) {
+  const lightRef = useRef<THREE.PointLight>(null);
+  const elapsed = useRef(0);
+
+  useFrame((_, delta) => {
+    if (!lightRef.current) return;
+    elapsed.current += delta;
+    const t = elapsed.current * 0.3;
+    const cosT = Math.cos(t);
+    const sinT = Math.sin(t);
+    const hx = radiusH * cosT;
+    const vy = radiusV * sinT;
+    const invSqrt2 = 1 / Math.sqrt(2);
+    const invSqrt6 = 1 / Math.sqrt(6);
+    lightRef.current.position.set(
+      center[0] + hx * invSqrt2 + vy * -invSqrt6,
+      center[1] + vy * 2 * invSqrt6 + 20,
+      center[2] + hx * -invSqrt2 + vy * -invSqrt6,
+    );
+  });
+
+  return <pointLight ref={lightRef} intensity={800} distance={0} decay={1.5} color="#ffffff" />;
+}
+
 function SceneContent() {
   const gridCols = useStore((s) => s.gridCols);
   const gridRows = useStore((s) => s.gridRows);
+  const rovingLight = useStore((s) => s.rovingLight);
   const center = useMemo(() => gridCenter(gridCols, gridRows), [gridCols, gridRows]);
 
   // Compute zoom to fit the grid.
@@ -75,6 +102,28 @@ function SceneContent() {
     return Math.min(zoomH, zoomV) * 0.95;
   }, [gridCols, gridRows]);
 
+  // Orbit radii for the roving light (half the projected grid extent)
+  const [orbitH, orbitV] = useMemo(() => {
+    if (gridCols === 0 || gridRows === 0) return [10, 10];
+    const corners = [
+      gridToWorld(0, 0),
+      gridToWorld(gridCols - 1, 0),
+      gridToWorld(0, gridRows - 1),
+      gridToWorld(gridCols - 1, gridRows - 1),
+    ];
+    const invSqrt2 = 1 / Math.sqrt(2);
+    const invSqrt6 = 1 / Math.sqrt(6);
+    let minH = Infinity, maxH = -Infinity;
+    let minV = Infinity, maxV = -Infinity;
+    for (const [x, y, z] of corners) {
+      const h = (x - z) * invSqrt2;
+      const v = (-x + 2 * y - z) * invSqrt6;
+      minH = Math.min(minH, h); maxH = Math.max(maxH, h);
+      minV = Math.min(minV, v); maxV = Math.max(maxV, v);
+    }
+    return [(maxH - minH) * 0.55, (maxV - minV) * 0.55];
+  }, [gridCols, gridRows]);
+
   // Position camera along (1,1,1) direction from the center
   const norm = 1 / Math.sqrt(3);
   const camPos: [number, number, number] = [
@@ -96,6 +145,7 @@ function SceneContent() {
       <ambientLight intensity={1.2} />
       <directionalLight position={[10, 20, 10]} intensity={0.15} />
       <directionalLight position={[-10, 5, -10]} intensity={0.1} />
+      {rovingLight && <RovingLight center={center} radiusH={orbitH} radiusV={orbitV} />}
       <CubeGrid />
     </>
   );

@@ -23,6 +23,8 @@ export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource
   const setAnimationSpeed = useStore((s) => s.setAnimationSpeed);
   const frozen = useStore((s) => s.frozen);
   const setFrozen = useStore((s) => s.setFrozen);
+  const rovingLight = useStore((s) => s.rovingLight);
+  const setRovingLight = useStore((s) => s.setRovingLight);
   const initGrid = useStore((s) => s.initGrid);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [cols, setCols] = useState(gridCols);
@@ -173,6 +175,12 @@ export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource
             onClick={() => setFrozen(!frozen)}
           >
             {frozen ? 'Unfreeze' : 'Freeze'}
+          </button>
+          <button
+            style={rovingLight ? activeButtonStyle : buttonStyle}
+            onClick={() => setRovingLight(!rovingLight)}
+          >
+            Light
           </button>
           <button
             style={showDebug ? activeButtonStyle : buttonStyle}
