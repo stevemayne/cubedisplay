@@ -16,6 +16,11 @@ export type LAB = [number, number, number];
 // 27 CIELAB values, one per visible sticker (indices 0-26)
 export type StickerTarget = LAB[];
 
+export interface StickerSample {
+  targets: StickerTarget[];
+  weights: Float32Array[];  // per-cell array of 27 edge weights
+}
+
 interface StickerPos {
   u: number; // normalized horizontal position [0, 1] within cell
   v: number; // normalized vertical position [0, 1] within cell (0 = top)
@@ -24,6 +29,9 @@ interface StickerPos {
 
 const SQRT2 = Math.sqrt(2);
 const SQRT6 = Math.sqrt(6);
+
+// Edge stickers get up to (1 + EDGE_SCALE)× the influence of uniform stickers.
+const EDGE_SCALE = 3.0;
 
 // Project a 3D point to normalized (u, v) within the hex cell
 function projectToCell(x: number, y: number, z: number): { u: number; v: number } {
@@ -74,21 +82,65 @@ function buildStickerPositions(): StickerPos[] {
 
 export const STICKER_POSITIONS: StickerPos[] = buildStickerPositions();
 
+// Pre-compute a luminance image from RGBA data for fast gradient computation.
+function buildLuminanceMap(data: Uint8ClampedArray, width: number, height: number): Float32Array {
+  const lum = new Float32Array(width * height);
+  for (let i = 0; i < width * height; i++) {
+    const idx = i * 4;
+    lum[i] = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+  }
+  return lum;
+}
+
+// Compute Sobel gradient magnitude at a pixel position.
+// Returns a value in [0, 1] (normalized by max possible gradient ~= 4*255).
+function gradientMagnitude(
+  lum: Float32Array,
+  width: number,
+  height: number,
+  cx: number,
+  cy: number,
+): number {
+  const ix = Math.round(cx);
+  const iy = Math.round(cy);
+  if (ix <= 0 || ix >= width - 1 || iy <= 0 || iy >= height - 1) return 0;
+
+  // Sobel 3×3 kernel
+  const tl = lum[(iy - 1) * width + (ix - 1)];
+  const tc = lum[(iy - 1) * width + ix];
+  const tr = lum[(iy - 1) * width + (ix + 1)];
+  const ml = lum[iy * width + (ix - 1)];
+  const mr = lum[iy * width + (ix + 1)];
+  const bl = lum[(iy + 1) * width + (ix - 1)];
+  const bc = lum[(iy + 1) * width + ix];
+  const br = lum[(iy + 1) * width + (ix + 1)];
+
+  const gx = -tl + tr - 2 * ml + 2 * mr - bl + br;
+  const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
+
+  // Max possible magnitude ≈ sqrt((4*255)² + (4*255)²) ≈ 1442
+  return Math.sqrt(gx * gx + gy * gy) / 1442;
+}
+
 // Sample the source image at each sticker position for all cubes in the grid.
-// Returns one StickerTarget (27 CIELAB values) per grid cell.
+// Returns per-cell sticker colors (27 CIELAB values) and edge weights.
 // Grid row 0 = bottom of image (isometric convention), so we flip vertically.
 export function sampleStickersForGrid(
   imageData: ImageData,
   cols: number,
   rows: number,
-): StickerTarget[] {
+): StickerSample {
   const { width, height, data } = imageData;
   const cellW = width / cols;
   const cellH = height / rows;
   const targets: StickerTarget[] = [];
+  const weights: Float32Array[] = [];
 
   // Sampling radius in pixels around each sticker center (for anti-aliasing)
   const sampleRadius = Math.max(1, Math.floor(Math.min(cellW, cellH) / 12));
+
+  // Pre-compute luminance map for gradient detection
+  const lum = buildLuminanceMap(data, width, height);
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
@@ -97,19 +149,25 @@ export function sampleStickersForGrid(
       const cy = (rows - 1 - row) * cellH;
 
       const stickers: LAB[] = [];
+      const cellWeights = new Float32Array(27);
 
-      for (const { u, v } of STICKER_POSITIONS) {
+      for (let si = 0; si < STICKER_POSITIONS.length; si++) {
+        const { u, v } = STICKER_POSITIONS[si];
         const px = cx + u * cellW;
         const py = cy + v * cellH;
         const rgb = sampleRegion(data, width, height, px, py, sampleRadius);
         stickers.push(rgbToLab(rgb));
+
+        const grad = gradientMagnitude(lum, width, height, px, py);
+        cellWeights[si] = 1.0 + EDGE_SCALE * grad;
       }
 
       targets.push(stickers);
+      weights.push(cellWeights);
     }
   }
 
-  return targets;
+  return { targets, weights };
 }
 
 // Sample average RGB in a small square region centered at (cx, cy)

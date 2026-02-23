@@ -66,8 +66,8 @@ export class MatchingManager {
     this.resizeCanvas(cols, rows);
     this.source.render(this.ctx, this.sampleWidth, this.sampleHeight);
     const imageData = this.ctx.getImageData(0, 0, this.sampleWidth, this.sampleHeight);
-    const targets = sampleStickersForGrid(imageData, cols, rows);
-    const states = findAllStates(targets);
+    const { targets, weights } = sampleStickersForGrid(imageData, cols, rows);
+    const states = findAllStates(targets, weights);
     const debug: MatchingDebugData = {
       imageDataUrl: this.canvas.toDataURL(),
       states,
