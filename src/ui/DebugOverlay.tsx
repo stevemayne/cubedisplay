@@ -18,7 +18,7 @@ export function DebugOverlay({ debugData, visible }: DebugOverlayProps) {
   useEffect(() => {
     if (!debugData || !canvasRef.current) return;
 
-    const { states, cols, rows } = debugData;
+    const { results, cols, rows } = debugData;
     const canvas = canvasRef.current;
     const cellSize = 36;
     canvas.width = cols * cellSize;
@@ -32,8 +32,9 @@ export function DebugOverlay({ debugData, visible }: DebugOverlayProps) {
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
         const idx = row * cols + col;
-        const state = states[idx];
-        if (!state) continue;
+        const result = results[idx];
+        if (!result) continue;
+        const state = result.state;
 
         const cellX = col * cellSize;
         const cellY = (rows - 1 - row) * cellSize;

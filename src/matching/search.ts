@@ -1,9 +1,16 @@
 // Find the best cube state for each grid position using edge-weighted per-sticker scoring.
 
-import type { CubeState } from '../cube/types';
+import type { CubeState, Move } from '../cube/types';
 import { CANDIDATE_POOL, type Candidate } from './candidates';
 import { COLOR_LAB } from './palette';
 import type { StickerTarget } from './projection';
+
+// Result returned for each grid cell — includes animation info
+export interface TargetResult {
+  state: CubeState;
+  baseState: CubeState;
+  moves: Move[];
+}
 
 // Pre-compute flat LAB arrays for each Rubik's color for fast access
 const RUBIK_L = COLOR_LAB.map((lab) => lab[0]);
@@ -30,8 +37,8 @@ function scoreCandidate(
   return error;
 }
 
-// Find the best candidate state for a single cube target
-export function findBestState(target: StickerTarget, weights: Float32Array | null = null): CubeState {
+// Find the best candidate for a single cube target
+export function findBestMatch(target: StickerTarget, weights: Float32Array | null = null): TargetResult {
   let best = CANDIDATE_POOL[0];
   let bestScore = Infinity;
 
@@ -43,10 +50,10 @@ export function findBestState(target: StickerTarget, weights: Float32Array | nul
     }
   }
 
-  return best.state;
+  return { state: best.state, baseState: best.baseState, moves: best.moves };
 }
 
-// Find the best states for an entire grid
-export function findAllStates(targets: StickerTarget[], weights: Float32Array[] | null = null): CubeState[] {
-  return targets.map((target, i) => findBestState(target, weights ? weights[i] : null));
+// Find the best matches for an entire grid
+export function findAllMatches(targets: StickerTarget[], weights: Float32Array[] | null = null): TargetResult[] {
+  return targets.map((target, i) => findBestMatch(target, weights ? weights[i] : null));
 }

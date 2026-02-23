@@ -1,11 +1,10 @@
 import type { ImageSource } from './imageSource';
-import type { CubeState } from '../cube/types';
 import { sampleStickersForGrid } from './projection';
-import { findAllStates } from './search';
+import { findAllMatches, type TargetResult } from './search';
 
 export interface MatchingDebugData {
   imageDataUrl: string;
-  states: CubeState[];
+  results: TargetResult[];
   cols: number;
   rows: number;
 }
@@ -18,7 +17,7 @@ export class MatchingManager {
   private ctx: CanvasRenderingContext2D;
   private source: ImageSource | null = null;
   private intervalId: number | null = null;
-  private onUpdate: ((states: CubeState[], debug: MatchingDebugData) => void) | null = null;
+  private onUpdate: ((results: TargetResult[], debug: MatchingDebugData) => void) | null = null;
 
   // Target pixel budget (total pixels ≈ 256×256)
   private readonly PIXEL_BUDGET = 256 * 256;
@@ -55,7 +54,7 @@ export class MatchingManager {
     this.source = source;
   }
 
-  setOnUpdate(callback: (states: CubeState[], debug: MatchingDebugData) => void) {
+  setOnUpdate(callback: (results: TargetResult[], debug: MatchingDebugData) => void) {
     this.onUpdate = callback;
   }
 
@@ -67,14 +66,14 @@ export class MatchingManager {
     this.source.render(this.ctx, this.sampleWidth, this.sampleHeight);
     const imageData = this.ctx.getImageData(0, 0, this.sampleWidth, this.sampleHeight);
     const { targets, weights } = sampleStickersForGrid(imageData, cols, rows);
-    const states = findAllStates(targets, weights);
+    const results = findAllMatches(targets, weights);
     const debug: MatchingDebugData = {
       imageDataUrl: this.canvas.toDataURL(),
-      states,
+      results,
       cols,
       rows,
     };
-    this.onUpdate?.(states, debug);
+    this.onUpdate?.(results, debug);
   }
 
   // Start periodic updates (for dynamic sources like the clock)

@@ -88,8 +88,15 @@ export class DigitalClockSource implements ImageSource {
     ctx.fillRect(0, 0, width, height);
 
     // --- Text rendering ---
-    const fontSize = Math.min(width / 2.2, height * 0.85);
+    // Start with height-based size, then shrink if text overflows width
+    const pad = width * 0.05;
+    let fontSize = height * 0.85;
     ctx.font = `900 ${fontSize}px monospace`;
+    const measured = ctx.measureText(timeStr);
+    if (measured.width > width - pad * 2) {
+      fontSize *= (width - pad * 2) / measured.width;
+      ctx.font = `900 ${fontSize}px monospace`;
+    }
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 

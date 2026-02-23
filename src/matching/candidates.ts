@@ -4,6 +4,10 @@
 // the U, R, F faces — indices 0-26 of the CubeState array). By applying up to N
 // moves from each solved orientation, we expand the palette from 24 solid-face
 // options to thousands of distinct per-sticker patterns.
+//
+// Each candidate stores its base orientation (solved state) and the moves applied
+// to reach it. This allows smooth animation: solve to base, then apply the
+// candidate's moves — avoiding jarring whole-cube snaps.
 
 import type { CubeState, Move } from '../cube/types';
 import { ALL_MOVES, applyMove, inverseMove } from '../cube/moves';
@@ -12,6 +16,8 @@ import { ORIENTATION_STATES } from '../cube/wholeCubeRotations';
 export interface Candidate {
   visiblePattern: Uint8Array; // 27 elements: U(0-8), R(9-17), F(18-26)
   state: CubeState;           // full 54-element state
+  baseState: CubeState;       // the solved orientation this was derived from
+  moves: Move[];              // moves from baseState to reach this state (0-2 moves)
 }
 
 // Extract the visible sticker pattern (first 27 elements = U + R + F faces)
@@ -42,9 +48,8 @@ export function generateCandidatePool(maxDepth: number = 2): Candidate[] {
   const seen = new Set<string>();
   const candidates: Candidate[] = [];
 
-  // Single unified BFS starting from all 24 orientations at depth 0.
-  // This ensures states discovered at minimum depth get their children explored.
-  const queue: [CubeState, number, Move | null][] = [];
+  // Queue: [state, depth, lastMove, baseState, movePath]
+  const queue: [CubeState, number, Move | null, CubeState, Move[]][] = [];
 
   // Seed with all 24 solved orientations at depth 0
   for (const baseState of ORIENTATION_STATES) {
@@ -55,14 +60,16 @@ export function generateCandidatePool(maxDepth: number = 2): Candidate[] {
       candidates.push({
         visiblePattern: vp,
         state: new Uint8Array(baseState) as CubeState,
+        baseState: new Uint8Array(baseState) as CubeState,
+        moves: [],
       });
-      queue.push([baseState, 0, null]);
+      queue.push([baseState, 0, null, baseState, []]);
     }
   }
 
   // BFS expansion
   while (queue.length > 0) {
-    const [current, depth, lastMove] = queue.shift()!;
+    const [current, depth, lastMove, baseState, movePath] = queue.shift()!;
     if (depth >= maxDepth) continue;
 
     for (const move of ALL_MOVES) {
@@ -74,12 +81,15 @@ export function generateCandidatePool(maxDepth: number = 2): Candidate[] {
       if (!seen.has(key)) {
         seen.add(key);
         const vp = next.slice(0, 27) as Uint8Array;
+        const nextMoves = [...movePath, move];
         candidates.push({
           visiblePattern: vp,
           state: new Uint8Array(next) as CubeState,
+          baseState: new Uint8Array(baseState) as CubeState,
+          moves: nextMoves,
         });
         if (depth + 1 < maxDepth) {
-          queue.push([next, depth + 1, move]);
+          queue.push([next, depth + 1, move, baseState, nextMoves]);
         }
       }
     }

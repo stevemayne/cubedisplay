@@ -19,8 +19,8 @@ function App() {
   useEffect(() => {
     const manager = new MatchingManager();
     managerRef.current = manager;
-    manager.setOnUpdate((states, debug) => {
-      setAllTargets(states);
+    manager.setOnUpdate((results, debug) => {
+      setAllTargets(results);
       setDebugData(debug);
     });
     return () => manager.dispose();

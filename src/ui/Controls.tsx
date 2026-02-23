@@ -21,6 +21,7 @@ export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [cols, setCols] = useState(gridCols);
   const [rows, setRows] = useState(gridRows);
+  const [collapsed, setCollapsed] = useState(false);
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,10 +39,29 @@ export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource
     initGrid(cols, rows);
   }, [initGrid, cols, rows]);
 
+  if (collapsed) {
+    return (
+      <button
+        style={toggleButtonStyle}
+        onClick={() => setCollapsed(false)}
+      >
+        Settings
+      </button>
+    );
+  }
+
   return (
     <div style={panelStyle}>
-      <div style={sectionStyle}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <label style={labelStyle}>Source</label>
+        <button
+          style={closeButtonStyle}
+          onClick={() => setCollapsed(true)}
+        >
+          &times;
+        </button>
+      </div>
+      <div style={sectionStyle}>
         <div style={buttonGroupStyle}>
           <button
             style={activeSource === 'clock' ? activeButtonStyle : buttonStyle}
@@ -135,7 +155,7 @@ export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource
 const panelStyle: React.CSSProperties = {
   position: 'absolute',
   top: 16,
-  left: 16,
+  right: 16,
   background: 'rgba(0, 0, 0, 0.75)',
   backdropFilter: 'blur(10px)',
   borderRadius: 12,
@@ -147,6 +167,31 @@ const panelStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: 12,
+};
+
+const toggleButtonStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: 16,
+  right: 16,
+  background: 'rgba(0, 0, 0, 0.6)',
+  backdropFilter: 'blur(10px)',
+  border: '1px solid rgba(255, 255, 255, 0.2)',
+  borderRadius: 8,
+  color: '#fff',
+  padding: '6px 14px',
+  cursor: 'pointer',
+  fontFamily: 'system-ui, -apple-system, sans-serif',
+  fontSize: 12,
+};
+
+const closeButtonStyle: React.CSSProperties = {
+  background: 'none',
+  border: 'none',
+  color: '#888',
+  cursor: 'pointer',
+  fontSize: 18,
+  lineHeight: 1,
+  padding: '0 2px',
 };
 
 const sectionStyle: React.CSSProperties = {

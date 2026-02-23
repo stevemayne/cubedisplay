@@ -3,6 +3,7 @@ import type { CubeState, Move } from '../cube/types';
 import { SOLVED_STATE } from '../cube/constants';
 import { generateScramble } from '../cube/scramble';
 import { inverseMoves } from '../cube/moves';
+import type { TargetResult } from '../matching/search';
 
 export type CubePhase = 'idle' | 'scrambling' | 'solving' | 'displaying';
 
@@ -12,6 +13,8 @@ export interface CubeInstance {
   row: number;
   state: CubeState;
   targetState: CubeState;
+  targetBaseState: CubeState;   // solved orientation the target was derived from
+  targetMoves: Move[];          // moves from baseState to reach targetState
   targetVersion: number; // increments when targetState actually changes
   phase: CubePhase;
   moveQueue: Move[];
@@ -36,7 +39,7 @@ interface AppState {
   setAnimationSpeed: (speed: number) => void;
   togglePlay: () => void;
   setFrozen: (frozen: boolean) => void;
-  setAllTargets: (states: CubeState[]) => void;
+  setAllTargets: (results: TargetResult[]) => void;
   startCycle: (cubeId: number) => void;
 }
 
@@ -55,6 +58,8 @@ function createCubeInstance(id: number, col: number, row: number): CubeInstance 
     row,
     state: SOLVED_STATE,
     targetState: SOLVED_STATE,
+    targetBaseState: SOLVED_STATE,
+    targetMoves: [],
     targetVersion: 0,
     phase: 'idle',
     moveQueue: [],
@@ -87,16 +92,18 @@ export const useStore = create<AppState>((set) => ({
 
   setFrozen: (frozen: boolean) => set({ frozen }),
 
-  setAllTargets: (states: CubeState[]) => {
+  setAllTargets: (results: TargetResult[]) => {
     set((s) => ({
       cubes: s.cubes.map((c, i) => {
-        const newState = states[i];
-        if (!newState) return c;
+        const result = results[i];
+        if (!result) return c;
         // Only bump version if the visible pattern actually changed
-        if (visibleStatesEqual(c.targetState, newState)) return c;
+        if (visibleStatesEqual(c.targetState, result.state)) return c;
         return {
           ...c,
-          targetState: newState,
+          targetState: result.state,
+          targetBaseState: result.baseState,
+          targetMoves: result.moves,
           targetVersion: c.targetVersion + 1,
         };
       }),

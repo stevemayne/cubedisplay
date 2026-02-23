@@ -6,7 +6,7 @@ import { useStore } from '../store/useStore';
 import { generateScramble } from '../cube/scramble';
 import { inverseMoves } from '../cube/moves';
 import { SOLVED_STATE } from '../cube/constants';
-import type { CubeState } from '../cube/types';
+import type { CubeState, Move } from '../cube/types';
 
 interface GridCubeProps {
   col: number;
@@ -14,15 +14,19 @@ interface GridCubeProps {
   cubeIndex: number;
   animationSpeed: number;
   targetState: CubeState;
+  targetBaseState: CubeState;
+  targetMoves: Move[];
   targetVersion: number;
   frozen: boolean;
 }
 
-function GridCube({ col, row, cubeIndex, animationSpeed, targetState, targetVersion, frozen }: GridCubeProps) {
+function GridCube({ col, row, cubeIndex, animationSpeed, targetState, targetBaseState, targetMoves, targetVersion, frozen }: GridCubeProps) {
   const cubeRef = useRef<RubiksCubeHandle>(null);
   const phaseRef = useRef<'idle' | 'animating' | 'waiting'>('waiting');
   const timerRef = useRef(0);
   const targetRef = useRef(targetState);
+  const baseStateRef = useRef(targetBaseState);
+  const movesRef = useRef(targetMoves);
   const versionRef = useRef(targetVersion);
   const displayedVersionRef = useRef<number | null>(null);
   const frozenRef = useRef(frozen);
@@ -39,6 +43,8 @@ function GridCube({ col, row, cubeIndex, animationSpeed, targetState, targetVers
   useEffect(() => {
     const prevVersion = versionRef.current;
     targetRef.current = targetState;
+    baseStateRef.current = targetBaseState;
+    movesRef.current = targetMoves;
     versionRef.current = targetVersion;
 
     // If the target actually changed and we're idle (already showing old target),
@@ -51,7 +57,7 @@ function GridCube({ col, row, cubeIndex, animationSpeed, targetState, targetVers
       phaseRef.current = 'waiting';
       timerRef.current = Math.random() * 1.5;
     }
-  }, [targetState, targetVersion]);
+  }, [targetState, targetBaseState, targetMoves, targetVersion]);
 
   // Track frozen changes
   useEffect(() => {
@@ -86,7 +92,8 @@ function GridCube({ col, row, cubeIndex, animationSpeed, targetState, targetVers
 
     if (phaseRef.current === 'animating') {
       if (!cube.isAnimating()) {
-        // Cycle finished — snap to current target and hold
+        // Cycle finished — safety snap to target (should be a no-op since
+        // the animation already applied the candidate's moves)
         const version = versionRef.current;
         cube.setState(targetRef.current);
         displayedVersionRef.current = version;
@@ -101,9 +108,16 @@ function GridCube({ col, row, cubeIndex, animationSpeed, targetState, targetVers
     } else if (phaseRef.current === 'waiting') {
       timerRef.current -= delta;
       if (timerRef.current <= 0) {
+        // Set the cube to the target's base orientation, then enqueue:
+        // scramble → solve (back to base) → candidate's moves (reach target)
+        // This way the final moves naturally arrive at the target — no jarring snap.
+        const baseState = baseStateRef.current;
+        const targetMovesToApply = movesRef.current;
         const scramble = generateScramble(10 + Math.floor(Math.random() * 8));
         const solve = inverseMoves(scramble);
-        cube.enqueueMoves([...scramble, ...solve]);
+
+        cube.setState(baseState);
+        cube.enqueueMoves([...scramble, ...solve, ...targetMovesToApply]);
         phaseRef.current = 'animating';
       }
     }
@@ -127,9 +141,15 @@ function GridCube({ col, row, cubeIndex, animationSpeed, targetState, targetVers
 }
 
 // Each cube subscribes to its own target state from the store
-function GridCubeConnected({ col, row, cubeIndex, animationSpeed, frozen }: Omit<GridCubeProps, 'targetState' | 'targetVersion'>) {
+function GridCubeConnected({ col, row, cubeIndex, animationSpeed, frozen }: Omit<GridCubeProps, 'targetState' | 'targetBaseState' | 'targetMoves' | 'targetVersion'>) {
   const targetState = useStore(
     (s) => s.cubes[cubeIndex]?.targetState ?? SOLVED_STATE
+  );
+  const targetBaseState = useStore(
+    (s) => s.cubes[cubeIndex]?.targetBaseState ?? SOLVED_STATE
+  );
+  const targetMoves = useStore(
+    (s) => s.cubes[cubeIndex]?.targetMoves ?? []
   );
   const targetVersion = useStore(
     (s) => s.cubes[cubeIndex]?.targetVersion ?? 0
@@ -142,6 +162,8 @@ function GridCubeConnected({ col, row, cubeIndex, animationSpeed, frozen }: Omit
       cubeIndex={cubeIndex}
       animationSpeed={animationSpeed}
       targetState={targetState}
+      targetBaseState={targetBaseState}
+      targetMoves={targetMoves}
       targetVersion={targetVersion}
       frozen={frozen}
     />
