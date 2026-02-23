@@ -4,6 +4,9 @@ import { Controls } from './ui/Controls';
 import { DebugOverlay } from './ui/DebugOverlay';
 import { MatchingManager, type MatchingDebugData } from './matching/matchingManager';
 import { DigitalClockSource, StaticImageSource, ColorTestSource } from './matching/imageSource';
+import { PALETTES } from './cube/constants';
+import { setActivePalette } from './matching/palette';
+import { setMaterialPalette } from './rendering/materials';
 import { useStore } from './store/useStore';
 
 function App() {
@@ -18,6 +21,7 @@ function App() {
   const [debugData, setDebugData] = useState<MatchingDebugData | null>(null);
   const [showDebug, setShowDebug] = useState(false);
   const [clockFontIndex, setClockFontIndex] = useState(0);
+  const [paletteIndex, setPaletteIndex] = useState(0);
 
   // Initialize the matching manager once
   useEffect(() => {
@@ -115,6 +119,15 @@ function App() {
     }
   }, []);
 
+  const handlePaletteChange = useCallback((index: number) => {
+    setPaletteIndex(index);
+    const palette = PALETTES[index];
+    if (!palette) return;
+    setActivePalette(palette.rgb);
+    setMaterialPalette(palette.hex);
+    managerRef.current?.refresh();
+  }, []);
+
   return (
     <>
       <Scene />
@@ -125,6 +138,8 @@ function App() {
         activeSource={activeSource}
         clockFontIndex={clockFontIndex}
         onClockFontChange={handleClockFontChange}
+        paletteIndex={paletteIndex}
+        onPaletteChange={handlePaletteChange}
         showDebug={showDebug}
         onToggleDebug={() => setShowDebug((v) => !v)}
       />

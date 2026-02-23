@@ -2,7 +2,7 @@
 
 import type { CubeState, Move } from '../cube/types';
 import { CANDIDATE_POOL, type Candidate } from './candidates';
-import { COLOR_LAB } from './palette';
+import { RUBIK_L, RUBIK_A, RUBIK_B } from './palette';
 import type { StickerTarget } from './projection';
 
 // Result returned for each grid cell — includes animation info
@@ -11,11 +11,6 @@ export interface TargetResult {
   baseState: CubeState;
   moves: Move[];
 }
-
-// Pre-compute flat LAB arrays for each Rubik's color for fast access
-const RUBIK_L = COLOR_LAB.map((lab) => lab[0]);
-const RUBIK_A = COLOR_LAB.map((lab) => lab[1]);
-const RUBIK_B = COLOR_LAB.map((lab) => lab[2]);
 
 // Per-sticker score: weighted sum of 27 deltaE² values.
 // Stickers at image edges get higher weights to prioritize boundary accuracy.

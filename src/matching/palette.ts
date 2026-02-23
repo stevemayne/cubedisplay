@@ -1,28 +1,19 @@
 import { COLOR_RGB } from '../cube/constants';
-import { rgbToLab, colorDistanceLab } from '../utils/color';
-import type { ColorIndex } from '../cube/types';
+import { rgbToLab } from '../utils/color';
 
-// Pre-compute LAB values for each Rubik's color
-export const COLOR_LAB = COLOR_RGB.map((rgb) => rgbToLab(rgb));
+// Mutable LAB arrays for the active palette — updated by setActivePalette()
+const initialLabs = COLOR_RGB.map((rgb) => rgbToLab(rgb));
 
-// Pre-compute 6×6 distance table between all Rubik's colors
-export const COLOR_DISTANCE_TABLE: number[][] = Array.from({ length: 6 }, (_, i) =>
-  Array.from({ length: 6 }, (_, j) => colorDistanceLab(COLOR_LAB[i], COLOR_LAB[j]))
-);
+export const RUBIK_L: number[] = initialLabs.map((lab) => lab[0]);
+export const RUBIK_A: number[] = initialLabs.map((lab) => lab[1]);
+export const RUBIK_B: number[] = initialLabs.map((lab) => lab[2]);
 
-// Find the nearest Rubik's color to an arbitrary RGB value
-export function nearestRubikColor(rgb: [number, number, number]): ColorIndex {
-  const lab = rgbToLab(rgb);
-  let bestIdx = 0;
-  let bestDist = Infinity;
-
+// Switch the active palette used for matching
+export function setActivePalette(rgb: [number, number, number][]) {
+  const labs = rgb.map((c) => rgbToLab(c));
   for (let i = 0; i < 6; i++) {
-    const d = colorDistanceLab(lab, COLOR_LAB[i]);
-    if (d < bestDist) {
-      bestDist = d;
-      bestIdx = i;
-    }
+    RUBIK_L[i] = labs[i][0];
+    RUBIK_A[i] = labs[i][1];
+    RUBIK_B[i] = labs[i][2];
   }
-
-  return bestIdx as ColorIndex;
 }

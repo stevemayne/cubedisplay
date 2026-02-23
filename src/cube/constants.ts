@@ -36,6 +36,40 @@ export const COLOR_HEX = [
   0x0046ad, // Blue
 ];
 
+// Named palettes
+export interface CubePalette {
+  label: string;
+  rgb: [number, number, number][];
+  hex: number[];
+}
+
+export const PALETTES: CubePalette[] = [
+  {
+    label: 'Classic',
+    rgb: COLOR_RGB,
+    hex: COLOR_HEX,
+  },
+  {
+    label: 'Pastel',
+    rgb: [
+      [255, 255, 255], // White
+      [255, 158, 170], // Pink
+      [126, 219, 166], // Mint
+      [255, 243, 163], // Light yellow
+      [255, 184, 122], // Peach
+      [126, 181, 232], // Sky blue
+    ],
+    hex: [
+      0xffffff, // White
+      0xff9eaa, // Pink
+      0x7edba6, // Mint
+      0xfff3a3, // Light yellow
+      0xffb87a, // Peach
+      0x7eb5e8, // Sky blue
+    ],
+  },
+];
+
 export const INTERIOR_COLOR = 0x1a1a1a; // Dark gray for non-sticker faces
 
 // Opposite face pairs: color i is opposite to OPPOSITE[i]

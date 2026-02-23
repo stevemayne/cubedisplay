@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useStore } from '../store/useStore';
 import { CLOCK_FONTS } from '../matching/imageSource';
+import { PALETTES } from '../cube/constants';
 
 interface ControlsProps {
   onImageUpload: (image: HTMLImageElement) => void;
@@ -9,11 +10,13 @@ interface ControlsProps {
   activeSource: 'clock' | 'image' | 'test';
   clockFontIndex: number;
   onClockFontChange: (index: number) => void;
+  paletteIndex: number;
+  onPaletteChange: (index: number) => void;
   showDebug: boolean;
   onToggleDebug: () => void;
 }
 
-export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource, clockFontIndex, onClockFontChange, showDebug, onToggleDebug }: ControlsProps) {
+export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource, clockFontIndex, onClockFontChange, paletteIndex, onPaletteChange, showDebug, onToggleDebug }: ControlsProps) {
   const gridCols = useStore((s) => s.gridCols);
   const gridRows = useStore((s) => s.gridRows);
   const animationSpeed = useStore((s) => s.animationSpeed);
@@ -122,6 +125,19 @@ export function Controls({ onImageUpload, onClockMode, onColorTest, activeSource
           onChange={(e) => setAnimationSpeed(parseFloat(e.target.value))}
           style={sliderStyle}
         />
+      </div>
+
+      <div style={sectionStyle}>
+        <label style={labelStyle}>Palette</label>
+        <select
+          value={paletteIndex}
+          onChange={(e) => onPaletteChange(parseInt(e.target.value))}
+          style={selectStyle}
+        >
+          {PALETTES.map((p, i) => (
+            <option key={i} value={i}>{p.label}</option>
+          ))}
+        </select>
       </div>
 
       <div style={sectionStyle}>

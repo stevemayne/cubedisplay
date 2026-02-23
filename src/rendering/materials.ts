@@ -6,6 +6,13 @@ const stickerMaterials = COLOR_HEX.map(
   (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.15, metalness: 0.02 })
 );
 
+// Update sticker material colors when palette changes
+export function setMaterialPalette(hexColors: number[]) {
+  for (let i = 0; i < 6; i++) {
+    stickerMaterials[i].color.setHex(hexColors[i]);
+  }
+}
+
 const interiorMaterial = new THREE.MeshStandardMaterial({
   color: INTERIOR_COLOR,
   roughness: 0.9,
