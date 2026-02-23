@@ -1,73 +1,78 @@
-# React + TypeScript + Vite
+# Rubik's Mosaic Clock
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A real-time mosaic display built from a tessellating grid of 3D Rubik's cubes rendered in isometric projection. Each cube's three visible faces (top, right, front) are matched to approximate a target image — by default, a digital clock with a cycling color gradient background.
 
-Currently, two official plugins are available:
+## How It Works
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Rendering
 
-## React Compiler
+The cubes are rendered in **isometric projection** from the (1,1,1) direction using Three.js via `@react-three/fiber`. From this angle each cube appears as a pointy-top regular hexagon, and the cubes tessellate seamlessly in a rectangular grid using axial hex coordinates. An orthographic camera auto-zooms to fit the grid to the viewport.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Image Matching
 
-## Expanding the ESLint configuration
+A pluggable **image source** (clock, uploaded image, or color test pattern) renders to an offscreen canvas. The canvas is sampled at 27 sticker positions per grid cell — one for each sticker on the cube's three visible faces (U, R, F — 9 stickers each).
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Sampled RGB colors are converted to **CIELAB** color space for perceptually uniform distance calculations. A precomputed pool of ~1,700 **candidate states** (24 solved orientations × depth-2 face moves, deduplicated by visible pattern) is scored against each cell's target colors. **Edge-weighted scoring** uses Sobel gradient magnitude at each sticker position to prioritize stickers at color boundaries, improving text legibility.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Animation
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+When a cube's target changes, it plays a scramble-then-solve animation before arriving at the new pattern. Each candidate stores the base orientation it was derived from and the moves to reach the target, so the animation naturally ends at the correct state without jarring snaps.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+State management uses **Zustand**, with each cube subscribing to its own slice of the store.
+
+## Image Sources
+
+- **Digital Clock** — displays current time (HH:MM) with bold white text on a cycling gradient background that rotates through Rubik's orange, red, and blue
+- **Image Upload** — upload any image to display as a Rubik's mosaic
+- **Color Test** — vertical strips of the six Rubik's cube colors for calibration
+
+## Tech Stack
+
+- React 19, TypeScript, Vite
+- Three.js / @react-three/fiber / @react-three/drei
+- Zustand for state management
+
+## Getting Started
+
+```bash
+# Install dependencies
+npm install
+
+# Start dev server
+npm run dev
+
+# Type-check
+npx tsc --noEmit
+
+# Production build
+npm run build
+
+# Preview production build
+npm run preview
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Project Structure
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── cube/             # Rubik's cube model — state representation, moves, orientations, scramble
+├── matching/         # Image → cube state pipeline
+│   ├── imageSource.ts      # Pluggable image sources (clock, static image, test)
+│   ├── projection.ts       # Per-sticker sampling with Sobel edge weighting
+│   ├── candidates.ts       # BFS candidate pool generation (24 orientations × depth-2 moves)
+│   ├── search.ts           # CIELAB scoring and best-match selection
+│   ├── matchingManager.ts  # Orchestrates sampling → matching → store updates
+│   └── palette.ts          # Rubik's color palette in CIELAB
+├── rendering/        # Three.js scene
+│   ├── Scene.tsx           # Camera, lighting, canvas setup
+│   ├── CubeGrid.tsx        # Grid of cubes with staggered animation lifecycle
+│   ├── RubiksCubeVisual.tsx # Single cube mesh with move animation
+│   ├── gridLayout.ts       # Hex tessellation math
+│   ├── stickerMap.ts       # Sticker geometry mapping
+│   └── materials.ts        # Cube face materials
+├── animation/        # Animation utilities (easing, types)
+├── store/            # Zustand store (grid state, cube instances, targets)
+├── ui/               # Controls panel, debug overlay
+├── utils/            # Color conversion (RGB ↔ CIELAB)
+└── App.tsx           # Root component wiring sources, matching, and rendering
 ```
