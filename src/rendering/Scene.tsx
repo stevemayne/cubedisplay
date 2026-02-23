@@ -62,8 +62,8 @@ function SceneContent() {
 
     // Add padding for cube size (each cube extends ~1.5 units from center in projection)
     const cubeRadius = 3; // half a cube side projected
-    const extentH = (maxH - minH) + cubeRadius * 4;
-    const extentV = (maxV - minV) + cubeRadius * 4;
+    const extentH = (maxH - minH) + cubeRadius * 3;
+    const extentV = (maxV - minV) + cubeRadius * 3;
 
     // The OrthographicCamera frustum is window.innerWidth/zoom × window.innerHeight/zoom
     const w = window.innerWidth;
@@ -72,7 +72,7 @@ function SceneContent() {
     const zoomH = w / extentH;
     const zoomV = h / extentV;
 
-    return Math.min(zoomH, zoomV) * 0.85;
+    return Math.min(zoomH, zoomV) * 0.95;
   }, [gridCols, gridRows]);
 
   // Position camera along (1,1,1) direction from the center
