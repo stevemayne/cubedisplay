@@ -98,7 +98,12 @@ export class DigitalClockSource implements ImageSource {
       ctx.font = `900 ${fontSize}px monospace`;
     }
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.textBaseline = 'alphabetic';
+
+    // Use font metrics for true vertical centering (digits have no descenders,
+    // so 'middle' baseline leaves text visually too high)
+    const metrics = ctx.measureText(timeStr);
+    const textY = height / 2 + (metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent) / 2;
 
     // Dark outline using darkened gradient color for clean text/background boundary
     const dominantColor = lerpRgb(c1, c2, segFrac + 0.2);
@@ -110,11 +115,11 @@ export class DigitalClockSource implements ImageSource {
     ctx.strokeStyle = rgbToCSS(darkColor);
     ctx.lineWidth = fontSize / 12;
     ctx.lineJoin = 'round';
-    ctx.strokeText(timeStr, width / 2, height / 2);
+    ctx.strokeText(timeStr, width / 2, textY);
 
     // White fill on top
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(timeStr, width / 2, height / 2);
+    ctx.fillText(timeStr, width / 2, textY);
   }
 }
 
